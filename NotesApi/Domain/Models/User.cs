@@ -7,10 +7,16 @@ public class User
     public string PasswordHashed { get; private set; }
     public List<Note> Notes { get; private set; }
 
-    public User(string name, string passwordHashed)
+    public User(string userName, string passwordHashed)
     {
         Id = Guid.NewGuid();
-        Username = name;
+        Username = userName;
         PasswordHashed = passwordHashed;
+        Notes = new List<Note>();
+    }
+    
+    private User()
+    {
+        
     }
 }
