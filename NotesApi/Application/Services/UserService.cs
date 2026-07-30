@@ -1,11 +1,12 @@
 using Application.DTOs.Requests;
 using Application.Interfaces.Authentication;
 using Application.Interfaces.Repositories;
+using Application.Interfaces.Services;
 using Domain.Models;
 
 namespace Application.Services;
 
-public class UserService
+public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
@@ -34,7 +35,7 @@ public class UserService
     public async Task<string> LoginUser(LoginRequest request)
     {
         User? user = await _userRepository.GetUserByUsername(request.Username);
-        if (user == null)
+        if (user is null)
             throw new ArgumentException("Username does not exist.");
         
         bool result = _passwordHasher.Verify(request.Password, user.PasswordHashed);

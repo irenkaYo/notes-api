@@ -1,11 +1,12 @@
 using Application.DTOs.Requests;
 using Application.DTOs.Responses;
 using Application.Interfaces.Repositories;
+using Application.Interfaces.Services;
 using Domain.Models;
 
 namespace Application.Services;
 
-public class NoteService
+public class NoteService : INoteService
 {
     private readonly INoteRepository _noteRepository;
     
