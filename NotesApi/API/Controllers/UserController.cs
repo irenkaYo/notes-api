@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Application.DTOs.Requests;
 using Application.DTOs.Responses;
 using Application.Interfaces.Services;
@@ -35,9 +36,9 @@ public class UserController : ControllerBase
     [HttpGet("me")]
     public IActionResult Me()
     {
-        var userId = User.FindFirst("userId")?.Value;
-        var username = User.FindFirst("username")?.Value;
-        MeResponse response = new MeResponse(userId, username);
+        var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var username = User.FindFirst(ClaimTypes.Name)?.Value;
+        MeResponse response = new MeResponse(userIdString, username);
         return Ok(response);
     }
 }
