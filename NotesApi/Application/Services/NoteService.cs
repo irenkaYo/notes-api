@@ -22,9 +22,12 @@ public class NoteService : INoteService
         return responses;
     }
 
-    public async Task<NoteResponse> GetNoteById(Guid noteId)
+    public async Task<NoteResponse> GetNoteById(Guid noteId, Guid userId)
     {
         Note note = await GetNoteOrThrow(noteId);
+        
+        EnsureUserOwnsNote(note, userId);
+        
         var response = ConvertToDto(note);
         return response;
     }
@@ -40,17 +43,23 @@ public class NoteService : INoteService
         return response;
     }
 
-    public async Task<NoteResponse> UpdateNote(UpdateNoteRequest request, Guid noteId)
+    public async Task<NoteResponse> UpdateNote(UpdateNoteRequest request, Guid noteId, Guid userId)
     {
         Note note = await GetNoteOrThrow(noteId);
+        
+        EnsureUserOwnsNote(note, userId);
+        
         await _noteRepository.UpdateNote(note);
         var response = ConvertToDto(note);
         return response;
     }
 
-    public async Task DeleteNote(Guid noteId)
+    public async Task DeleteNote(Guid noteId, Guid userId)
     {
         Note note = await GetNoteOrThrow(noteId);
+        
+        EnsureUserOwnsNote(note, userId);
+        
         await _noteRepository.DeleteNote(note);
     }
 
@@ -76,5 +85,11 @@ public class NoteService : INoteService
         if  (note is null)
             throw new Exception("Note not found");
         return note;
+    }
+    
+    private static void EnsureUserOwnsNote(Note note, Guid userId)
+    {
+        if (note.UserId != userId)
+            throw new UnauthorizedAccessException();
     }
 }
