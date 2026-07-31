@@ -19,8 +19,8 @@ public class JwtProvider
     {
         Claim[] claims =
         [
-            new Claim("userId", user.Id.ToString()),
-            new Claim("username", user.Username)
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Name, user.Username)
         ];
         var signingCredentials = new SigningCredentials(
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.SecretKey)),
