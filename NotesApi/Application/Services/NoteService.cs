@@ -35,7 +35,7 @@ public class NoteService : INoteService
     public async Task<NoteResponse> CreateNote(CreateNoteRequest request, Guid userId)
     {
         if (request.Text is null || request.Title is null)
-            throw new Exception("Text and Text cannot be null");
+            throw new Exception("Text and Title cannot be null");
         
         Note note = new Note(request.Title, request.Text, userId);
         await _noteRepository.CreateNote(note);
@@ -49,6 +49,11 @@ public class NoteService : INoteService
         
         EnsureUserOwnsNote(note, userId);
         
+        if (request.Title is null)
+            throw new Exception("Title cannot be null");
+        
+        note.Text = request.Text;
+        note.Title = request.Title;
         await _noteRepository.UpdateNote(note);
         var response = ConvertToDto(note);
         return response;
@@ -76,7 +81,7 @@ public class NoteService : INoteService
     
     private NoteResponse ConvertToDto(Note note)
     {
-        return new NoteResponse(note.Title, note.Text, note.CreatedAt);
+        return new NoteResponse(note.Id, note.Title, note.Text, note.CreatedAt);
     }
 
     private async Task<Note> GetNoteOrThrow(Guid noteId)
