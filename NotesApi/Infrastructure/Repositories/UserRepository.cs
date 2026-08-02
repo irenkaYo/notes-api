@@ -1,5 +1,6 @@
 using Application.Interfaces.Repositories;
 using Domain.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Repositories;
 
@@ -20,7 +21,7 @@ public class UserRepository : IUserRepository
 
     public async Task<User?> GetUserByUsername(string username)
     {
-        User? user = await _context.Users.FindAsync(username);
+        User? user = await _context.Users.FirstOrDefaultAsync(x => x.Username == username);
         return user;
     }
 }
