@@ -21,15 +21,33 @@ public class UserController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
-        await _userService.RegisterUser(request);
-        return Ok();
+        try
+        {
+            await _userService.RegisterUser(request);
+            return Ok();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
     
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var result = await _userService.LoginUser(request);
-        return Ok(result);
+        try
+        {
+            var token = await _userService.LoginUser(request);
+            return Ok(new { token });
+        }
+        catch (ArgumentException)
+        {
+            return Unauthorized();
+        }
     }
     
     [Authorize]
