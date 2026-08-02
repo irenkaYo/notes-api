@@ -27,6 +27,10 @@ public class UserService : IUserService
         if (request.Password.Length < 5)
             throw new ArgumentException("Password must be at least 5 characters long.");
         
+        var existing = await _userRepository.GetUserByUsername(request.Username);
+        if (existing != null)
+            throw new InvalidOperationException("Username already exists.");
+        
         string passwordHashed = _passwordHasher.Generate(request.Password);
         User user = new User(request.Username, passwordHashed);
         await _userRepository.AddUser(user);
