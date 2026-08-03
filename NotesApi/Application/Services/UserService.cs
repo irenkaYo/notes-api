@@ -1,4 +1,6 @@
+using System.Security.Claims;
 using Application.DTOs.Requests;
+using Application.DTOs.Responses;
 using Application.Interfaces.Authentication;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services;
@@ -11,12 +13,14 @@ public class UserService : IUserService
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtProvider _jwtProvider;
+    private readonly IRefreshTokenRepository _refreshTokenRepository;
     
-    public UserService(IUserRepository userRepository, IPasswordHasher passwordHasher, IJwtProvider jwtProvider)
+    public UserService(IUserRepository userRepository, IPasswordHasher passwordHasher, IJwtProvider jwtProvider, IRefreshTokenRepository refreshTokenRepository)
     {
         _userRepository = userRepository;
         _passwordHasher = passwordHasher;
         _jwtProvider = jwtProvider;
+        _refreshTokenRepository = refreshTokenRepository;
     }
 
     public async Task RegisterUser(RegisterRequest request)
@@ -48,5 +52,39 @@ public class UserService : IUserService
         
         string token = _jwtProvider.GenerateToken(user);
         return token;
+    }
+
+    public async Task<RefreshTokenResponse> CreateRefreshToken(RefreshTokenRequest request)
+    {
+        var existingToken = await _refreshTokenRepository.GetByToken(request.RefreshToken);
+
+        if (existingToken is null)
+            throw new ArgumentException("Refresh token not found.");
+
+        if (existingToken.ExpiryDate < DateTime.UtcNow)
+        {
+            await _refreshTokenRepository.DeleteToken(existingToken);
+            throw new ArgumentException("Refresh token expired.");
+        }
+        
+        var principal = _jwtProvider.GetPrincipalFromExpiredToken(request.Token);
+        var userId = Guid.Parse(principal.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        
+        if (existingToken.UserId != userId)
+            throw new ArgumentException("Refresh token does not match.");
+
+        var user = await _userRepository.GetUserById(userId);
+
+        if (user is null)
+            throw new ArgumentException("User not found");
+        
+        string accessToken = _jwtProvider.GenerateToken(user);
+        
+        var newRefreshToken = _jwtProvider.GenerateRefreshToken(userId);
+        await _refreshTokenRepository.DeleteToken(existingToken);
+        await _refreshTokenRepository.AddToken(newRefreshToken);
+
+        var result = new RefreshTokenResponse(accessToken, newRefreshToken.Token);
+        return result;
     }
 }
