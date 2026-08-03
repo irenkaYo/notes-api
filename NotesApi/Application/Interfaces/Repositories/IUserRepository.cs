@@ -6,4 +6,6 @@ public interface IUserRepository
 {
     public Task AddUser(User user);
     public Task<User?> GetUserByUsername(string username);
+    public Task<User?> GetUserById(Guid id);
+
 }
