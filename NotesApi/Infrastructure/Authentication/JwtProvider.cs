@@ -12,13 +12,12 @@ namespace Infrastructure.Authentication;
 public class JwtProvider : IJwtProvider
 {
     private readonly JwtOptions _jwtOptions;
-    private readonly IRefreshTokenRepository _refreshTokenRepository;
     
-    public JwtProvider(IOptions<JwtOptions> options, IRefreshTokenRepository refreshTokenRepository)
+    public JwtProvider(IOptions<JwtOptions> options)
     {
         _jwtOptions = options.Value;
-        _refreshTokenRepository = refreshTokenRepository;
     }
+    
     public string GenerateToken(User user)
     {
         Claim[] claims =
@@ -39,28 +38,43 @@ public class JwtProvider : IJwtProvider
         return tokenHandler.WriteToken(token);
     }
     
-    public async Task<string> GenerateRefreshToken(string token, User user, string? existingRefreshToken)
+    public RefreshToken GenerateRefreshToken(Guid userId)
     {
         var refreshToken = new RefreshToken
         {
             Token = Guid.NewGuid().ToString(),
-            UserId = user.Id,
+            UserId = userId,
             ExpiryDate = DateTime.UtcNow.AddDays(7),
             CreatedAt = DateTime.UtcNow
         };
-
-        if (!string.IsNullOrEmpty(existingRefreshToken))
+        
+        return refreshToken;
+    }
+    
+    public ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
+    {
+        var tokenValidationParameters = new TokenValidationParameters
         {
-            var existingToken = await _refreshTokenRepository.GetByToken(existingRefreshToken);
+            ValidateIssuer = true,
+            ValidIssuer = _jwtOptions.Issuer,
 
-            if (existingToken != null)
-            {
-                await _refreshTokenRepository.DeleteToken(existingToken);
-            }
-        }
+            ValidateAudience = true,
+            ValidAudience = _jwtOptions.Audience,
 
-        await _refreshTokenRepository.AddToken(refreshToken);
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(_jwtOptions.SecretKey)),
 
-        return refreshToken.Token;
+            ValidateLifetime = false
+        };
+
+        var tokenHandler = new JwtSecurityTokenHandler();
+
+        var principal = tokenHandler.ValidateToken(
+            token,
+            tokenValidationParameters,
+            out SecurityToken securityToken);
+
+        return principal;
     }
 }
