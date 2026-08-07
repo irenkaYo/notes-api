@@ -2,7 +2,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Application.Interfaces.Authentication;
-using Application.Interfaces.Repositories;
 using Domain.Models;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -30,9 +29,11 @@ public class JwtProvider : IJwtProvider
             SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
+            issuer: _jwtOptions.Issuer,
+            audience: _jwtOptions.Audience,
             signingCredentials: signingCredentials,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(_jwtOptions.ExpiresHours));
+            expires: DateTime.UtcNow.AddMinutes(_jwtOptions.ExpiresMinutes));
         
         var tokenHandler = new JwtSecurityTokenHandler();
         return tokenHandler.WriteToken(token);
