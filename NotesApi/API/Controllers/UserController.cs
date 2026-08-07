@@ -3,7 +3,11 @@ using Application.DTOs.Requests;
 using Application.DTOs.Responses;
 using Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
+using LoginRequest = Application.DTOs.Requests.LoginRequest;
+using RegisterRequest = Application.DTOs.Requests.RegisterRequest;
 
 namespace API.Controllers;
 
@@ -42,7 +46,7 @@ public class UserController : ControllerBase
         try
         {
             var token = await _userService.LoginUser(request);
-            return Ok(new { token });
+            return Ok(token);
         }
         catch (ArgumentException)
         {
@@ -58,5 +62,23 @@ public class UserController : ControllerBase
         var username = User.FindFirst(ClaimTypes.Name)?.Value;
         MeResponse response = new MeResponse(userIdString, username);
         return Ok(response);
+    }
+    
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request)
+    {
+        try
+        {
+            var response = await _userService.UpdateRefreshToken(request);
+            return Ok(response);
+        }
+        catch (ArgumentException ex)
+        {
+            return Unauthorized(new { error = ex.Message });
+        }
+        catch (SecurityTokenException ex)
+        {
+            return Unauthorized(new { error = ex.Message });
+        }
     }
 }
