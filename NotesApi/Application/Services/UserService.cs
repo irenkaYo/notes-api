@@ -40,7 +40,7 @@ public class UserService : IUserService
         await _userRepository.AddUser(user);
     }
 
-    public async Task<string> LoginUser(LoginRequest request)
+    public async Task<RefreshTokenResponse> LoginUser(LoginRequest request)
     {
         User? user = await _userRepository.GetUserByUsername(request.Username);
         if (user is null)
@@ -51,10 +51,12 @@ public class UserService : IUserService
             throw new ArgumentException("Password does not match.");
         
         string token = _jwtProvider.GenerateToken(user);
-        return token;
+        var refreshToken = _jwtProvider.GenerateRefreshToken(user.Id);
+        await _refreshTokenRepository.AddToken(refreshToken);
+        return new RefreshTokenResponse(token, refreshToken.Token);
     }
 
-    public async Task<RefreshTokenResponse> CreateRefreshToken(RefreshTokenRequest request)
+    public async Task<RefreshTokenResponse> UpdateRefreshToken(RefreshTokenRequest request)
     {
         var existingToken = await _refreshTokenRepository.GetByToken(request.RefreshToken);
 
@@ -67,7 +69,7 @@ public class UserService : IUserService
             throw new ArgumentException("Refresh token expired.");
         }
         
-        var principal = _jwtProvider.GetPrincipalFromExpiredToken(request.Token);
+        var principal = _jwtProvider.GetPrincipalFromExpiredToken(request.AccessToken);
         var userId = Guid.Parse(principal.FindFirst(ClaimTypes.NameIdentifier)!.Value);
         
         if (existingToken.UserId != userId)
@@ -84,7 +86,6 @@ public class UserService : IUserService
         await _refreshTokenRepository.DeleteToken(existingToken);
         await _refreshTokenRepository.AddToken(newRefreshToken);
 
-        var result = new RefreshTokenResponse(accessToken, newRefreshToken.Token);
-        return result;
+        return new RefreshTokenResponse(accessToken, newRefreshToken.Token);
     }
 }
